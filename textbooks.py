@@ -46,10 +46,21 @@ class TextbookHandler:
             print 'Please do not remove your drive...'
             try:
                 self.load_new_drive(drive, status)
+                self.load_from_new_drive(drive, status)
+                
+                path_to_textbooks = '/Volumes/' + drive + '/Textbooks/'
+                print 'Checking that all files were updated successfully...'
+                if self.check_new_drive(path_to_textbooks, self.path_to_textbooks):
+                    print 'Success!'
+                else:
+                    print 'Failure.'
             except OSError:
                 pass
 
+        
+
     def load_new_drive(self, drive, status=False):
+        # Raises OSError if drive does not exist
         contents = os.listdir('/Volumes/' + drive)
         path_to_textbooks = '/Volumes/' + drive + '/Textbooks/'
 
@@ -70,16 +81,34 @@ class TextbookHandler:
                 # Print out status message
                 if status:
                     print '\tCopying "' + tb + '"... \t (%d / %d) [%.2f%%]' % (len(os.listdir(path_to))+1, len(os.listdir(path_to_textbooks)), 100*(float(len(os.listdir(path_to))+1)) / len(textbooks))
+                
                 # Copy textbook
                 shutil.copy2(self.path_to_textbooks + tb, path_to_textbooks)
+                
                 # Update contents
                 contents = os.listdir('/Volumes/' + drive)
+        
 
-        print 'Checking that all files were updated successfully...'
-        if self.check_new_drive(path_to_textbooks, self.path_to_textbooks):
-            print 'Success!'
-        else:
-            print 'Failure.'
+    def load_from_new_drive(self, drive, status=False):
+        path_to_textbooks = '/Volumes/' + drive + '/Textbooks/'
+        new_textbooks = [tb for tb in os.listdir(path_to_textbooks) if len(tb) >= 7 and tb[:3].lower() == 'new' and tb[-4:] == '.pdf']
+        contents = os.listdir(self.path_to_textbooks)
+
+        count = 0
+        for tb in new_textbooks:
+            count += 1
+            
+            tb_new = tb[3:].strip().lower()
+            
+            if tb_new not in contents:
+                if status:
+                    print '\tCopying new textbook "' + tb_new + '"... \t (%d / %d) [%.2f%%]' % (count, len(new_textbooks), 100*(float(count) / len(new_textbooks)))
+                
+                os.rename(tb, tb_new)
+                
+                shutil.copy2(path_to_textbooks + tb_new, self.path_to_textbooks)
+                
+                contents = os.listdir(self.path_to_textbooks)
 
     def check_new_drive(self, path1, path2):
         contents1, contents2 = os.listdir(path1), os.listdir(path2)
